@@ -1,0 +1,12 @@
+{
+  "bindings": [
+    {
+      "name": "myQueueItem",
+      "type": "queueTrigger",
+      "direction": "in",
+      "queueName": "jobdefmedia3",
+      "connection": "HARIFUNAP1_QUEUE_STORAGE"
+    }
+  ],
+  "disabled": true
+}
