@@ -30,7 +30,7 @@ public static void Run(TimerInfo myTimer, TraceWriter log)
 
     var appSettings = ConfigurationManager.AppSettings;
 
-    // Status
+    /*// Status
     string status = appSettings["NEW_JOBDEFINITION_STATUS"];
     if (string.IsNullOrEmpty(status))
     {
@@ -44,7 +44,7 @@ public static void Run(TimerInfo myTimer, TraceWriter log)
     }
 
     // Update Status
-    appSettings["NEW_JOBDEFINITION_STATUS"] = "In progress";
+    appSettings["NEW_JOBDEFINITION_STATUS"] = "In progress";*/
 
     /// Data transformation Config params
     string subscriptionId = appSettings["SUBSCRIPTIONID"];
@@ -223,8 +223,8 @@ public static void Run(TimerInfo myTimer, TraceWriter log)
     log.Info($"Job triggered successfully.");
     log.Info($"Job url: {trackJobUrl}");
 
-    // Update Status
-    appSettings["NEW_JOBDEFINITION_STATUS"] = "Created";
+    //// Update Status
+    //appSettings["NEW_JOBDEFINITION_STATUS"] = "Created";
 }
 
 /// <summary>
