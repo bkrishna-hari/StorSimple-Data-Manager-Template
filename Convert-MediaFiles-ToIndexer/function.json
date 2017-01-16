@@ -8,5 +8,5 @@
       "connection": "HARIFUNAP1_QUEUE_STORAGE"
     }
   ],
-  "disabled": true
+  "disabled": false
 }
