@@ -241,32 +241,140 @@
             ]
         },
         {
-            "apiVersion": "2016-03-01",
             "type": "Microsoft.Web/sites",
-            "name": "[parameters('functionAppName')]",
-            "location": "[resourceGroup().location]",
             "kind": "functionapp",
+            "name": "[parameters('functionAppName')]",
+            "apiVersion": "2016-03-01",
+            "location": "[resourceGroup().location]",
             "properties": {
-                "name": "[parameters('functionAppName')]"
+                "name": "[parameters('functionAppName')]",
+                "siteConfig": {
+                    "appSettings": [
+                        {
+                            "name": "AzureWebJobsDashboard",
+                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', toLower(parameters('storageAccountName')),';AccountKey=',listKeys(resourceId(variables('subscriptionId'),resourceGroup().name,'Microsoft.Storage/storageAccounts', toLower(parameters('storageAccountName'))), '2015-05-01-preview').key1)]"
+                        },
+                        {
+                            "name": "AzureWebJobsStorage",
+                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', toLower(parameters('storageAccountName')),';AccountKey=',listKeys(resourceId(variables('subscriptionId'),resourceGroup().name,'Microsoft.Storage/storageAccounts', toLower(parameters('storageAccountName'))), '2015-05-01-preview').key1)]"
+                        },
+                        {
+                            "name": "FUNCTIONS_EXTENSION_VERSION",
+                            "value": "~1"
+                        },
+                        {
+                            "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
+                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', toLower(parameters('storageAccountName')),';AccountKey=',listKeys(resourceId(variables('subscriptionId'),resourceGroup().name,'Microsoft.Storage/storageAccounts', toLower(parameters('storageAccountName'))), '2015-05-01-preview').key1)]"
+                        },
+                        {
+                            "name": "WEBSITE_CONTENTSHARE",
+                            "value": "[toLower(parameters('functionAppName'))]"
+                        },
+                        {
+                            "name": "WEBSITE_NODE_DEFAULT_VERSION",
+                            "value": "6.5.0"
+                        },
+                        {
+                            "name": "MEDIA_ACCOUNT_NAME",
+                            "value": "[parameters('mediaServiceName')]"
+                        },
+                        {
+                            "name": "MEDIA_ACCOUNT_KEY",
+                            "value": "[listKeys(resourceId('Microsoft.Media/mediaServices', parameters('mediaServiceName')), '2015-10-01').primaryKey]"
+                        },
+                        {
+                            "name": "[concat(toUpper(parameters('functionAppName')), '_QUEUE_STORAGE')]",
+                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', toLower(parameters('storageAccountName')),';AccountKey=',listKeys(resourceId(variables('subscriptionId'),resourceGroup().name,'Microsoft.Storage/storageAccounts', toLower(parameters('storageAccountName'))), '2015-05-01-preview').key1)]"
+                        },
+                        {
+                            "name": "SUBSCRIPTIONID",
+                            "value": "[variables('subscriptionId')]"
+                        },
+                        {
+                            "name": "TENANTID",
+                            "value": "[parameters('tenantId')]"
+                        },
+                        {
+                            "name": "CLIENTID",
+                            "value": "[parameters('clientId')]"
+                        },
+                        {
+                            "name": "ACTIVEDIRECTORYKEY",
+                            "value": "[parameters('activeDirectoryKey')]"
+                        },
+                        {
+                            "name": "RESOURCEGROUPNAME",
+                            "value": "[resourceGroup().name]"
+                        },
+                        {
+                            "name": "LOCATION",
+                            "value": "[resourceGroup().location]"
+                        },
+                        {
+                            "name": "DATAMANAGERNAME",
+                            "value": "[parameters('dataManagerName')]"
+                        },
+                        {
+                            "name": "DATASOURCENAME",
+                            "value": "[parameters('dataSourceName')]"
+                        },
+                        {
+                            "name": "RESOURCEID",
+                            "value": "[parameters('resourceId')]"
+                        },
+                        {
+                            "name": "SERVICEENCRYPTIONKEY",
+                            "value": "[parameters('serviceEncryptionKey')]"
+                        },
+                        {
+                            "name": "DATASINKNAME",
+                            "value": "[parameters('dataSinkName')]"
+                        },
+                        {
+                            "name": "STORAGEACCOUNTNAME",
+                            "value": "[toLower(parameters('storageAccountName'))]"
+                        },
+                        {
+                            "name": "STORAGEACCOUNTKEY",
+                            "value": "[listKeys(resourceId(variables('subscriptionId'),resourceGroup().name,'Microsoft.Storage/storageAccounts', toLower(parameters('storageAccountName'))), '2015-05-01-preview').key1]"
+                        },
+                        {
+                            "name": "JOBDEFINITIONNAME",
+                            "value": "[parameters('jobDefinitionName')]"
+                        },
+                        {
+                            "name": "DEVICENAME",
+                            "value": "[parameters('deviceName')]"
+                        },
+                        {
+                            "name": "VOLUMENAME",
+                            "value": "[toLower(parameters('volumeName'))]"
+                        },
+                        {
+                            "name": "ROOTDIRECTORIES",
+                            "value": "[parameters('rootDirectories')]"
+                        },
+                        {
+                            "name": "FILENAMEFILTER",
+                            "value": "[parameters('fileNameFilter')]"
+                        },
+                        {
+                            "name": "BACKUPCHOICE",
+                            "value": "[parameters('backupChoice')]"
+                        },
+                        {
+                            "name": "USERCONFIRMATION",
+                            "value": "[parameters('userConfirmation')]"
+                        },
+                        {
+                            "name": "ISDIRECTORYMODE",
+                            "value": "[parameters('isDirectoryMode')]"
+                        }
+                    ]
+                },
+                "clientAffinityEnabled": "false"
             },
             "resources": [
-                {
-                    "apiVersion": "2016-03-01",
-                    "name": "appsettings",
-                    "type": "config",
-                    "dependsOn": [
-                        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
-                "[concat('Microsoft.Media/mediaServices/', parameters('mediaServiceName'))]",
-                "[concat('Microsoft.HybridData/dataManagers/', parameters('dataManagerName'))]",
-                        "[resourceId('Microsoft.Web/sites', parameters('functionAppName'))]"
-                    ],
-                    "properties": {
-                        "AZUREWEBJOBSSTORAGE": "[concat('DefaultEndpointsProtocol=https;AccountName=',parameters('storageAccountName'),';AccountKey=',listkeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2015-05-01-preview').key1,';')]", 
-                        "AZUREWEBJOBSDASHBOARD": "[concat('DefaultEndpointsProtocol=https;AccountName=',parameters('storageAccountName'),';AccountKey=',listkeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), '2015-05-01-preview').key1,';')]",
-                        "FUNCTIONS_EXTENSION_VERSION": "latest",
-                        "command": "deploy.cmd"
-                    }
-                },
                 {
                     "type": "sourcecontrols",
                     "name": "web",
@@ -277,8 +385,7 @@
                         "IsManualIntegration": "[parameters('manualIntegration')]"
                     },
                     "dependsOn": [
-                        "[resourceId('Microsoft.Web/sites/', parameters('functionAppName'))]",
-                        "[resourceId('Microsoft.Web/Sites/config', parameters('functionAppName'), 'appsettings')]"
+                        "[resourceId('Microsoft.Web/sites/', parameters('functionAppName'))]"
                     ]
                 }
             ],
