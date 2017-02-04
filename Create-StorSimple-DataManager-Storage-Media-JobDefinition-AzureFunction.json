@@ -52,7 +52,7 @@
             }
         },
         "serviceEncryptionKey": {
-            "type": "SecureString",
+            "type": "String",
             "metadata": {
                 "group": "Data source settings",
                 "description": "The Service Data Encryption Key of your StorSimple manager. This is the key that was generated when the first device was registered in your StorSimple manager."
