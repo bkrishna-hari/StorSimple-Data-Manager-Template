@@ -71,14 +71,19 @@ public static void Run(TimerInfo myTimer, TraceWriter log)
     string mediaConversionFunctionName = appSettings["CONVERT_MEDIAFILES_FUNNAME"];
 
     string functionDirectory = @"D:\home\site\wwwroot";
-    string dmsFunctionFileName = Path.Combine(Path.Combine(functionDirectory, dmsFunctionName), "function.json");
-    string queueFunctionFileName = Path.Combine(Path.Combine(functionDirectory, mediaConversionFunctionName), "function.json");
+    string timerFunctionFileName = Path.Combine(functionDirectory, dmsFunctionName, "function.json");
+    string queueFunctionFileName = Path.Combine(functionDirectory, mediaConversionFunctionName, "function.json");
+
+    // Print function names
+    log.Info($"Timer function path: {timerFunctionFileName}");
+    log.Info($"Queue function path: {queueFunctionFileName}");
+
     string json = string.Empty;
     string queueName = string.Empty;
     bool isTimerFunctionDisabled = false;
 
     TimerFunction timerFunction = null;
-    using (StreamReader r = new StreamReader(dmsFunctionFileName))
+    using (StreamReader r = new StreamReader(timerFunctionFileName))
     {
         json = r.ReadToEnd();
         timerFunction = JsonConvert.DeserializeObject<TimerFunction>(json);
@@ -94,15 +99,17 @@ public static void Run(TimerInfo myTimer, TraceWriter log)
     }
 
     // Increase Interval of TimerFunction & Disable function  
-    using (var writer = new StreamWriter(dmsFunctionFileName))
+    using (var writer = new StreamWriter(timerFunctionFileName))
     {
         if (!timerFunction.disabled)
         {
             timerFunction.bindings[0].schedule = "0 0/59 * * * *";
             timerFunction.disabled = true;
             log.Info($"Timer function schedule: {timerFunction.bindings[0].schedule}");
+            log.Info($"Timer function status: {timerFunction.disabled}");
 
             json = JsonConvert.SerializeObject(timerFunction);
+            log.Info($"{json}");
             writer.Write(json);
         }
     }
@@ -110,157 +117,158 @@ public static void Run(TimerInfo myTimer, TraceWriter log)
     // Set QUEUE Name
     using (var writer = new StreamWriter(queueFunctionFileName))
     {
-        if (queueFunction.bindings[0].queueName.ToUpper() == "#QUEUENAME")
+        if (queueFunction.bindings[0].queueName.ToUpper() == "QUEUENAME")
         {
             queueFunction.bindings[0].queueName = jobDefinitionName;
             log.Info($"Queue name: {jobDefinitionName}");
 
             json = JsonConvert.SerializeObject(queueFunction);
+            log.Info($"{json}");
             writer.Write(json);
         }
     }
 
-    string message = string.Empty;
-    bool isResourceCreated = false;
+    //string message = string.Empty;
+    //bool isResourceCreated = false;
 
-    var configParams = new ConfigurationParams
-    {
-        SubscriptionId = subscriptionId,
-        TenantId = tenantId,
-        ClientId = clientId,
-        ActiveDirectoryKey = activeDirectoryKey,
-        ResourceGroupName = resourceGroupName,
-        ResourceName = resourceName,
-    };
+    //var configParams = new ConfigurationParams
+    //{
+    //    SubscriptionId = subscriptionId,
+    //    TenantId = tenantId,
+    //    ClientId = clientId,
+    //    ActiveDirectoryKey = activeDirectoryKey,
+    //    ResourceGroupName = resourceGroupName,
+    //    ResourceName = resourceName,
+    //};
 
-    // Initialize the Data Transformation Job instance.
-    DataTransformationJob dataTransformationJob = new DataTransformationJob(configParams);
+    //// Initialize the Data Transformation Job instance.
+    //DataTransformationJob dataTransformationJob = new DataTransformationJob(configParams);
 
-    // Read public keys
-    PublicKeys publicKeys = dataTransformationJob.GetPublicKeys();
+    //// Read public keys
+    //PublicKeys publicKeys = dataTransformationJob.GetPublicKeys();
 
-    // Encrypt Customer secrets
-    string encryptedServiceEncryptionKey = EncryptCustomerSecret(serviceEncryptionKey, publicKeys);
+    //// Encrypt Customer secrets
+    //string encryptedServiceEncryptionKey = EncryptCustomerSecret(serviceEncryptionKey, publicKeys);
 
-    // Create StorSimple Data Source
-    DataSourceInput dataSourceInput = new DataSourceInput()
-    {
-        name = dataSourceName,
-        properties = new DataSourceProperties()
-        {
-            repositoryId = DefaultServiceHelperUrls.GetDataSourceRepositoryUrl(subscriptionId, resourceGroupName, Constants.StorSimpleProviderName, resourceId),
-            dataStoreTypeId = DefaultServiceHelperUrls.GetDataStoreTypeUrl(subscriptionId, resourceGroupName, Constants.ResourceProviderName, resourceName, Constants.StorSimpleDataStoreTypeName),
-            state = Constants.State,
-            extendedProperties = new DataSourceExtendedProperty()
-            {
-                resourceId = resourceId
-            },
-            customerSecrets = new List<DataSourceCustomerSecret>()
-            {
-                new DataSourceCustomerSecret() {keyIdentifier = Constants.ServiceEncryptionKey, keyValue = encryptedServiceEncryptionKey, algorithm = Constants.Algorithm }
-            }
-        }
+    //// Create StorSimple Data Source
+    //DataSourceInput dataSourceInput = new DataSourceInput()
+    //{
+    //    name = dataSourceName,
+    //    properties = new DataSourceProperties()
+    //    {
+    //        repositoryId = DefaultServiceHelperUrls.GetDataSourceRepositoryUrl(subscriptionId, resourceGroupName, Constants.StorSimpleProviderName, resourceId),
+    //        dataStoreTypeId = DefaultServiceHelperUrls.GetDataStoreTypeUrl(subscriptionId, resourceGroupName, Constants.ResourceProviderName, resourceName, Constants.StorSimpleDataStoreTypeName),
+    //        state = Constants.State,
+    //        extendedProperties = new DataSourceExtendedProperty()
+    //        {
+    //            resourceId = resourceId
+    //        },
+    //        customerSecrets = new List<DataSourceCustomerSecret>()
+    //        {
+    //            new DataSourceCustomerSecret() {keyIdentifier = Constants.ServiceEncryptionKey, keyValue = encryptedServiceEncryptionKey, algorithm = Constants.Algorithm }
+    //        }
+    //    }
 
-    };
+    //};
 
-    // Create/Update data source
-    log.Info($"Data source ({dataSourceName}) creation initiated.");
+    //// Create/Update data source
+    //log.Info($"Data source ({dataSourceName}) creation initiated.");
 
-    isResourceCreated = dataTransformationJob.CreateDataSource(resourceGroupName, resourceName, dataSourceInput, dataSourceName, out message);
-    if (!isResourceCreated)
-    {
-        log.Info($"Failed to create new Data source.");
-        log.Info(message);
-        return;
-    }
-    else
-    {
-        log.Info($"Data source ({dataSourceName}) created successfully.");
-    }
+    //isResourceCreated = dataTransformationJob.CreateDataSource(resourceGroupName, resourceName, dataSourceInput, dataSourceName, out message);
+    //if (!isResourceCreated)
+    //{
+    //    log.Info($"Failed to create new Data source.");
+    //    log.Info(message);
+    //    return;
+    //}
+    //else
+    //{
+    //    log.Info($"Data source ({dataSourceName}) created successfully.");
+    //}
 
 
-    string encryptedStorageAccountKey = EncryptCustomerSecret(storageAccountKey, publicKeys);
-    string encryptedMediaServiceKey = EncryptCustomerSecret(mediaServiceKey, publicKeys);
+    //string encryptedStorageAccountKey = EncryptCustomerSecret(storageAccountKey, publicKeys);
+    //string encryptedMediaServiceKey = EncryptCustomerSecret(mediaServiceKey, publicKeys);
 
-    // Create StorSimple Data Sink (MediaService / StorageAccount)
-    DataSinkInput dataSinkInput = new DataSinkInput()
-    {
-        name = dataSinkName,
-        properties = new DataSinkProperties()
-        {
-            repositoryId = DefaultServiceHelperUrls.GetMediaServiceDataSinkRepositoryUrl(subscriptionId, resourceGroupName, Constants.MediaProviderName, mediaServiceName),
-            dataStoreTypeId = DefaultServiceHelperUrls.GetDataStoreTypeUrl(subscriptionId, resourceGroupName, Constants.ResourceProviderName, resourceName, Constants.MediaDataStoreTypeName),
-            state = Constants.State,
-            extendedProperties = new DataSinkExtendedProperty()
-            {
-                storageAccountNameForQueue = storageAccountName
-            },
-            customerSecrets = new List<DataSinkCustomerSecret>()
-                {
-                    new DataSinkCustomerSecret() {keyIdentifier = Constants.MediaServicesAccessKey, keyValue = encryptedMediaServiceKey, algorithm = Constants.Algorithm },
-                    new DataSinkCustomerSecret() {keyIdentifier = Constants.StorageAccountAccessKeyForQueue, keyValue = encryptedStorageAccountKey, algorithm = Constants.Algorithm }
-                }
-        }
-    };
+    //// Create StorSimple Data Sink (MediaService / StorageAccount)
+    //DataSinkInput dataSinkInput = new DataSinkInput()
+    //{
+    //    name = dataSinkName,
+    //    properties = new DataSinkProperties()
+    //    {
+    //        repositoryId = DefaultServiceHelperUrls.GetMediaServiceDataSinkRepositoryUrl(subscriptionId, resourceGroupName, Constants.MediaProviderName, mediaServiceName),
+    //        dataStoreTypeId = DefaultServiceHelperUrls.GetDataStoreTypeUrl(subscriptionId, resourceGroupName, Constants.ResourceProviderName, resourceName, Constants.MediaDataStoreTypeName),
+    //        state = Constants.State,
+    //        extendedProperties = new DataSinkExtendedProperty()
+    //        {
+    //            storageAccountNameForQueue = storageAccountName
+    //        },
+    //        customerSecrets = new List<DataSinkCustomerSecret>()
+    //            {
+    //                new DataSinkCustomerSecret() {keyIdentifier = Constants.MediaServicesAccessKey, keyValue = encryptedMediaServiceKey, algorithm = Constants.Algorithm },
+    //                new DataSinkCustomerSecret() {keyIdentifier = Constants.StorageAccountAccessKeyForQueue, keyValue = encryptedStorageAccountKey, algorithm = Constants.Algorithm }
+    //            }
+    //    }
+    //};
 
-    // Create/Update data sink
-    log.Info($"Data sink ({dataSinkName}) creation initiated.");
-    isResourceCreated = dataTransformationJob.CreateDataSink(resourceGroupName, resourceName, dataSinkInput, dataSinkName, out message);
-    if (!isResourceCreated)
-    {
-        log.Info($"Failed to create new Data sink.");
-        log.Info(message);
-        return;
-    }
-    else
-    {
-        log.Info($"Data sink ({dataSinkName}) created successfully.");
-    }
+    //// Create/Update data sink
+    //log.Info($"Data sink ({dataSinkName}) creation initiated.");
+    //isResourceCreated = dataTransformationJob.CreateDataSink(resourceGroupName, resourceName, dataSinkInput, dataSinkName, out message);
+    //if (!isResourceCreated)
+    //{
+    //    log.Info($"Failed to create new Data sink.");
+    //    log.Info(message);
+    //    return;
+    //}
+    //else
+    //{
+    //    log.Info($"Data sink ({dataSinkName}) created successfully.");
+    //}
 
-    JobDefinitionInput jobDefinitionInput = new JobDefinitionInput()
-    {
-        name = jobDefinitionName,
-        properties = new JobDefinitionProperties()
-        {
-            dataSourceId = DefaultServiceHelperUrls.GetDataPath(subscriptionId, resourceGroupName, Constants.ResourceProviderName, resourceName, dataSourceName),
-            dataSinkId = DefaultServiceHelperUrls.GetDataPath(subscriptionId, resourceGroupName, Constants.ResourceProviderName, resourceName, dataSinkName),
-            state = Constants.State,
-            userConfirmation = userConfirmation,
-            dataServiceInput = new DataServiceProperties()
-            {
-                backupChoice = backupChoice,
-                deviceName = deviceName,
-                fileNameFilter = fileNameFilter,
-                isDirectoryMode = isDirectoryMode,
-                rootDirectories = new List<string>() { rootDirectories },
-                volumeNames = new List<string>() { volumeName }
-            }
-        }
-    };
+    //JobDefinitionInput jobDefinitionInput = new JobDefinitionInput()
+    //{
+    //    name = jobDefinitionName,
+    //    properties = new JobDefinitionProperties()
+    //    {
+    //        dataSourceId = DefaultServiceHelperUrls.GetDataPath(subscriptionId, resourceGroupName, Constants.ResourceProviderName, resourceName, dataSourceName),
+    //        dataSinkId = DefaultServiceHelperUrls.GetDataPath(subscriptionId, resourceGroupName, Constants.ResourceProviderName, resourceName, dataSinkName),
+    //        state = Constants.State,
+    //        userConfirmation = userConfirmation,
+    //        dataServiceInput = new DataServiceProperties()
+    //        {
+    //            backupChoice = backupChoice,
+    //            deviceName = deviceName,
+    //            fileNameFilter = fileNameFilter,
+    //            isDirectoryMode = isDirectoryMode,
+    //            rootDirectories = new List<string>() { rootDirectories },
+    //            volumeNames = new List<string>() { volumeName }
+    //        }
+    //    }
+    //};
 
-    // Create/Update data sink
-    log.Info($"Job definition ({jobDefinitionName}) creation initiated.");
-    isResourceCreated = dataTransformationJob.CreateJobDefinition(resourceGroupName, resourceName, jobDefinitionInput, jobDefinitionName, out message);
-    if (!isResourceCreated)
-    {
-        log.Info($"Failed to create new Job definition.");
-        log.Info(message);
-        return;
-    }
-    else
-    {
-        log.Info($"Job definition ({jobDefinitionName}) created successfully.");
-    }
+    //// Create/Update data sink
+    //log.Info($"Job definition ({jobDefinitionName}) creation initiated.");
+    //isResourceCreated = dataTransformationJob.CreateJobDefinition(resourceGroupName, resourceName, jobDefinitionInput, jobDefinitionName, out message);
+    //if (!isResourceCreated)
+    //{
+    //    log.Info($"Failed to create new Job definition.");
+    //    log.Info(message);
+    //    return;
+    //}
+    //else
+    //{
+    //    log.Info($"Job definition ({jobDefinitionName}) created successfully.");
+    //}
 
-    // Read Job definition params
-    DataServiceProperties dataServiceInput = dataTransformationJob.GetJobDefinitionParameters(jobDefinitionName).properties.dataServiceInput;
+    //// Read Job definition params
+    //DataServiceProperties dataServiceInput = dataTransformationJob.GetJobDefinitionParameters(jobDefinitionName).properties.dataServiceInput;
 
-    //Trigger DMS Job
-    string retryAfter = string.Empty;
-    string trackJobUrl = string.Empty;
-    dataTransformationJob.RunJobAsync(jobDefinitionName, dataServiceInput, out trackJobUrl, out retryAfter);
-    log.Info($"Job triggered successfully.");
-    log.Info($"Job url: {trackJobUrl}");
+    ////Trigger DMS Job
+    //string retryAfter = string.Empty;
+    //string trackJobUrl = string.Empty;
+    //dataTransformationJob.RunJobAsync(jobDefinitionName, dataServiceInput, out trackJobUrl, out retryAfter);
+    //log.Info($"Job triggered successfully.");
+    //log.Info($"Job url: {trackJobUrl}");
 }
 
 /// <summary>

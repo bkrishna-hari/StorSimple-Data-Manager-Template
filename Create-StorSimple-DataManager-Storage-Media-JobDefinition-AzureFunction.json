@@ -186,7 +186,7 @@
     "variables": {
         "subscriptionId": "[subscription().subscriptionId]",
         "createJobDefFunctionName": "Create-JobDefinition",
-        "triggerQueueFunctionName": "Convert-MediaFiles"
+        "triggerQueueFunctionName": "Convert-MediaFiles-ToIndexer"
     },
     "resources": [
         {
@@ -373,7 +373,7 @@
                         {
                             "name": "CREATE_JOBDEFINITION_FUNNAME",
                             "value": "[variables('createJobDefFunctionName')]"
-                        }
+                        },
                         {
                             "name": "CONVERT_MEDIAFILES_FUNNAME",
                             "value": "[variables('triggerQueueFunctionName')]"
