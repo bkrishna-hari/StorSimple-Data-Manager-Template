@@ -4,7 +4,7 @@
       "name": "myQueueItem",
       "type": "queueTrigger",
       "direction": "in",
-      "queueName": "jobdefmedia1",
+      "queueName": "#QUEUENAME",
       "connection": "AzureWebJobsDashboard"
     }
   ],

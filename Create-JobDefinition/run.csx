@@ -30,22 +30,6 @@ public static void Run(TimerInfo myTimer, TraceWriter log)
 
     var appSettings = ConfigurationManager.AppSettings;
 
-    /*// Status
-    string status = appSettings["NEW_JOBDEFINITION_STATUS"];
-    if (string.IsNullOrEmpty(status))
-    {
-        log.Info($"AppSetting 'NEW_JOBDEFINITION_STATUS' not available.");
-        return;
-    }
-    if (status.ToUpper().Trim() != "NONE")
-    {
-        log.Info($"Job definition creation status: {status}");
-        return;
-    }
-
-    // Update Status
-    appSettings["NEW_JOBDEFINITION_STATUS"] = "In progress";*/
-
     /// Data transformation Config params
     string subscriptionId = appSettings["SUBSCRIPTIONID"];
     string tenantId = appSettings["TENANTID"];
@@ -81,6 +65,60 @@ public static void Run(TimerInfo myTimer, TraceWriter log)
     string backupChoice = appSettings["BACKUPCHOICE"];
     string userConfirmation = appSettings["USERCONFIRMATION"];
     string isDirectoryMode = appSettings["ISDIRECTORYMODE"];
+
+    /// Function volumeNames
+    string dmsFunctionName = appSettings["CREATE_JOBDEFINITION_FUNNAME"];
+    string mediaConversionFunctionName = appSettings["CONVERT_MEDIAFILES_FUNNAME"];
+
+    string functionDirectory = @"D:\home\site\wwwroot";
+    string dmsFunctionFileName = Path.Combine(Path.Combine(functionDirectory, dmsFunctionName), "function.json");
+    string queueFunctionFileName = Path.Combine(Path.Combine(functionDirectory, mediaConversionFunctionName), "function.json");
+    string json = string.Empty;
+    string queueName = string.Empty;
+    bool isTimerFunctionDisabled = false;
+
+    TimerFunction timerFunction = null;
+    using (StreamReader r = new StreamReader(dmsFunctionFileName))
+    {
+        json = r.ReadToEnd();
+        timerFunction = JsonConvert.DeserializeObject<TimerFunction>(json);
+        isTimerFunctionDisabled = timerFunction.disabled;
+    }
+
+    QueueFunction queueFunction = null;
+    using (StreamReader r = new StreamReader(queueFunctionFileName))
+    {
+        json = r.ReadToEnd();
+        queueFunction = JsonConvert.DeserializeObject<QueueFunction>(json);
+        queueName = queueFunction.bindings[0].queueName;
+    }
+
+    // Increase Interval of TimerFunction & Disable function  
+    using (var writer = new StreamWriter(dmsFunctionFileName))
+    {
+        if (!timerFunction.disabled)
+        {
+            timerFunction.bindings[0].schedule = "0 0/59 * * * *";
+            timerFunction.disabled = true;
+            log.Info($"Timer function schedule: {timerFunction.bindings[0].schedule}");
+
+            json = JsonConvert.SerializeObject(timerFunction);
+            writer.Write(json);
+        }
+    }
+
+    // Set QUEUE Name
+    using (var writer = new StreamWriter(queueFunctionFileName))
+    {
+        if (queueFunction.bindings[0].queueName.ToUpper() == "#QUEUENAME")
+        {
+            queueFunction.bindings[0].queueName = jobDefinitionName;
+            log.Info($"Queue name: {jobDefinitionName}");
+
+            json = JsonConvert.SerializeObject(queueFunction);
+            writer.Write(json);
+        }
+    }
 
     string message = string.Empty;
     bool isResourceCreated = false;
@@ -217,14 +255,12 @@ public static void Run(TimerInfo myTimer, TraceWriter log)
     // Read Job definition params
     DataServiceProperties dataServiceInput = dataTransformationJob.GetJobDefinitionParameters(jobDefinitionName).properties.dataServiceInput;
 
+    //Trigger DMS Job
     string retryAfter = string.Empty;
     string trackJobUrl = string.Empty;
     dataTransformationJob.RunJobAsync(jobDefinitionName, dataServiceInput, out trackJobUrl, out retryAfter);
     log.Info($"Job triggered successfully.");
     log.Info($"Job url: {trackJobUrl}");
-
-    //// Update Status
-    //appSettings["NEW_JOBDEFINITION_STATUS"] = "Created";
 }
 
 /// <summary>
@@ -284,4 +320,33 @@ public static string EncryptUsingJsonWebKey(byte[] plainTextArray, byte[] levelK
     }
     builder.Remove(builder.Length - 1, 1);
     return builder.ToString();
+}
+
+public class TimerBinding
+{
+    public string name { get; set; }
+    public string type { get; set; }
+    public string direction { get; set; }
+    public string schedule { get; set; }
+}
+
+public class QueueBinding
+{
+    public string name { get; set; }
+    public string type { get; set; }
+    public string direction { get; set; }
+    public string queueName { get; set; }
+    public string connection { get; set; }
+}
+
+public class TimerFunction
+{
+    public List<TimerBinding> bindings { get; set; }
+    public bool disabled { get; set; }
+}
+
+public class QueueFunction
+{
+    public List<QueueBinding> bindings { get; set; }
+    public bool disabled { get; set; }
 }

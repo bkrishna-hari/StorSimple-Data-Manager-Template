@@ -185,8 +185,8 @@
     },
     "variables": {
         "subscriptionId": "[subscription().subscriptionId]",
-        "createJobDefitionFunctionName": "fnCreateJobDefinition",
-        "triggerQueueMessagesFunctionName": "fnConvertMediaFiles"
+        "createJobDefFunctionName": "Create-JobDefinition",
+        "triggerQueueFunctionName": "Convert-MediaFiles"
     },
     "resources": [
         {
@@ -340,7 +340,7 @@
                         },
                         {
                             "name": "JOBDEFINITIONNAME",
-                            "value": "[parameters('jobDefinitionName')]"
+                            "value": "[toLower(parameters('jobDefinitionName'))]"
                         },
                         {
                             "name": "DEVICENAME",
@@ -369,6 +369,14 @@
                         {
                             "name": "ISDIRECTORYMODE",
                             "value": "[parameters('isDirectoryMode')]"
+                        },
+                        {
+                            "name": "CREATE_JOBDEFINITION_FUNNAME",
+                            "value": "[variables('createJobDefFunctionName')]"
+                        }
+                        {
+                            "name": "CONVERT_MEDIAFILES_FUNNAME",
+                            "value": "[variables('triggerQueueFunctionName')]"
                         }
                     ]
                 },
@@ -384,9 +392,9 @@
                         "branch": "[parameters('branch')]",
                         "IsManualIntegration": "[parameters('manualIntegration')]"
                     },
-                    "dependsOn": [
-                        "[resourceId('Microsoft.Web/sites/', parameters('functionAppName'))]"
-                    ]
+                  "dependsOn": [
+                    "[resourceId('Microsoft.Web/sites/', parameters('functionAppName'))]"
+                  ]
                 }
             ],
             "dependsOn": [
