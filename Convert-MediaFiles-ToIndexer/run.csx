@@ -12,19 +12,19 @@ private static CloudMediaContext cloudMediaContext = null;
 public static void Run(QueueItem myQueueItem, TraceWriter log)
 {
     string assetId = myQueueItem.TargetLocation.Substring(myQueueItem.TargetLocation.LastIndexOf("/") + 1).Replace("asset-", "nb:cid:UUID:");
-    
+
     // Read Asset details & initiate Media Analytics
     ReadMediaAssetAndRunEncoding(assetId, log);
 }
 
 public static void ReadMediaAssetAndRunEncoding(string assetId, TraceWriter log)
-{    
+{
     string keyIdentifier = ConfigurationManager.AppSettings["MEDIA_ACCOUNT_NAME"];
     string keyValue = ConfigurationManager.AppSettings["MEDIA_ACCOUNT_KEY"];
-    
+
     MediaServicesCredentials _cachedCredentials = new MediaServicesCredentials(keyIdentifier, keyValue);
     cloudMediaContext = new CloudMediaContext(_cachedCredentials);
-    
+
     var assetInstance = from a in cloudMediaContext.Assets where a.Id == assetId select a;
     IAsset asset = assetInstance.FirstOrDefault();
 
@@ -40,12 +40,12 @@ public static void ReadMediaAssetAndRunEncoding(string assetId, TraceWriter log)
     }
 
     //submit job
-    RunIndexingJob(asset, AssetCreationOptions.None, log);
+    RunIndexingJob(asset, log);
 
     log.Info($"Encoding launched - function done");
 }
 
-public static bool RunIndexingJob(IAsset asset, TraceWriter log, TraceWriter log, string configurationFile = "")
+public static bool RunIndexingJob(IAsset asset, TraceWriter log, string configurationFile = "")
 {
     // Declare a new job.
     var jobName = string.Concat("Media Indexing of ", asset.Name);
@@ -70,10 +70,10 @@ public static bool RunIndexingJob(IAsset asset, TraceWriter log, TraceWriter log
     // Launch the job.
     job.Submit();
 
-    // Check job execution and wait for job to finish.
-    Task progressJobTask = job.GetExecutionProgressTask(CancellationToken.None);
+    //// Check job execution and wait for job to finish.
+    //Task progressJobTask = job.GetExecutionProgressTask(CancellationToken.None);
 
-    progressJobTask.Wait();
+    //progressJobTask.Wait();
     log.Info($"Media Indexer submitted (Job name: {jobName})");
 
     return true;
