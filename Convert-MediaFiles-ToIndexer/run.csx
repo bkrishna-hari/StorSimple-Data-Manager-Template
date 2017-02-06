@@ -40,66 +40,16 @@ public static void ReadMediaAssetAndRunEncoding(string assetId, TraceWriter log)
     }
 
     //submit job
-    EncodeToAdaptiveBitrateMP4s(asset, AssetCreationOptions.None, log);
+    RunIndexingJob(asset, AssetCreationOptions.None, log);
 
     log.Info($"Encoding launched - function done");
 }
 
-static public void EncodeToAdaptiveBitrateMP4s(IAsset asset, AssetCreationOptions options, TraceWriter log)
-{
-
-    // Prepare a job with a single task to transcode the specified asset
-    // into a multi-bitrate asset MP4 720p preset.
-    var encodingPreset = "H264 Multiple Bitrate 720p";
-
-    IJob job = cloudMediaContext.Jobs.Create("Encoding " + asset.Name + " to " + encodingPreset);
-    
-    log.Info($"Job created");
-    
-    IMediaProcessor mesEncoder = (from p in cloudMediaContext.MediaProcessors where p.Name == "Media Encoder Standard" select p).ToList().OrderBy(mes => new Version(mes.Version)).LastOrDefault();
-    
-    log.Info($"MES encoder");
-    
-    ITask encodeTask = job.Tasks.AddNew("Encoding", mesEncoder, encodingPreset, TaskOptions.None);
-    encodeTask.InputAssets.Add(asset);
-    encodeTask.OutputAssets.AddNew(asset.Name + " as " + encodingPreset, AssetCreationOptions.None);
-
-    log.Info($"Submit job encoder");
-    job.Submit();
-
-    //todo - change to queue based notifications
-    job.GetExecutionProgressTask(CancellationToken.None).Wait();
-    
-    
-}
-
-
-public static string GetDynamicStreamingUrl(IAsset outputAsset)
-{
-    var daysForWhichStreamingUrlIsActive = 365;
-    
-    var accessPolicy = cloudMediaContext.AccessPolicies.Create(outputAsset.Name, TimeSpan.FromDays(daysForWhichStreamingUrlIsActive), AccessPermissions.Read | AccessPermissions.List);
-    var assetFiles = outputAsset.AssetFiles.ToList();
-    
-    var assetFile = assetFiles.Where(f => f.Name.ToLower().EndsWith(".ism")).FirstOrDefault();
-    if (assetFile != null)
-    {
-        var locator = cloudMediaContext.Locators.CreateLocator(LocatorType.OnDemandOrigin, outputAsset, accessPolicy);
-        Uri smoothUri = new Uri(locator.Path + assetFile.Name + "/manifest");
-        
-         
-        return smoothUri.ToString();
-    }
-
-    return string.Empty;
-}
-
-public static bool RunIndexingJob(IAsset asset, TraceWriter log, string configurationFile = "")
+public static bool RunIndexingJob(IAsset asset, TraceWriter log, TraceWriter log, string configurationFile = "")
 {
     // Declare a new job.
-    var jobName = string.Format("Media Indexing of {0}", asset.Name);
+    var jobName = string.Concat("Media Indexing of ", asset.Name);
     IJob job = cloudMediaContext.Jobs.Create(jobName);
-    job.Priority = 10;
 
     // Get a reference to the Azure Media Indexer.
     string MediaProcessorName = "Azure Media Indexer";
@@ -119,6 +69,11 @@ public static bool RunIndexingJob(IAsset asset, TraceWriter log, string configur
 
     // Launch the job.
     job.Submit();
+
+    // Check job execution and wait for job to finish.
+    Task progressJobTask = job.GetExecutionProgressTask(CancellationToken.None);
+
+    progressJobTask.Wait();
     log.Info($"Media Indexer submitted (Job name: {jobName})");
 
     return true;
@@ -126,7 +81,11 @@ public static bool RunIndexingJob(IAsset asset, TraceWriter log, string configur
 
 public static IMediaProcessor GetLatestMediaProcessorByName(string mediaProcessorName)
 {
-    var processor = cloudMediaContext.MediaProcessors.Where(p => p.Name == mediaProcessorName).ToList().OrderBy(p => new Version(p.Version)).LastOrDefault();
+    var processor = cloudMediaContext.MediaProcessors
+                 .Where(p => p.Name == mediaProcessorName)
+                 .ToList()
+                 .OrderBy(p => new Version(p.Version))
+                 .LastOrDefault();
 
     if (processor == null)
         throw new ArgumentException(string.Format("Unknown media processor", mediaProcessorName));
